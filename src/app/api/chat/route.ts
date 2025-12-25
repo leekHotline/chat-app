@@ -14,13 +14,15 @@ export async function POST(req: Request) {
     const apiKey = decrypt(encryptedApiKey);
     const aiModel = getModel(provider as AIProvider, model, apiKey);
 
-    const result = streamText({
+    const result = await streamText({
       model: aiModel,
-      messages: messages,
+      messages,
       tools: mcpTools,
+      maxToolRoundtrips: 5, // ✅ 推荐加上，防止无限工具循环
     });
 
-    return result.toDataStreamResponse();
+    // ✅ 关键修复：toDataStreamResponse() → toTextStreamResponse()
+    return result.toTextStreamResponse();
   } catch (error) {
     console.error('Chat API Error:', error);
     return new Response(
