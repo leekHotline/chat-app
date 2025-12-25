@@ -1,12 +1,15 @@
 // src/components/chat/MessageList.tsx
 'use client';
 
-import { useEffect, useRef } from 'react';
-import { motion, AnimatePresence } from 'framer-motion';
-import { User, Bot } from 'lucide-react';
+import { useEffect, useRef, useState } from 'react';
+import { User, Bot, Copy, Check, ThumbsUp, ThumbsDown, RotateCcw } from 'lucide-react';
 import ReactMarkdown from 'react-markdown';
 import remarkGfm from 'remark-gfm';
-import { cn } from '@/lib/utils/cn';
+import { cn } from '@/lib/utils';
+import { Button } from '@/components/ui/button';
+import { Avatar, AvatarFallback } from '@/components/ui/avatar';
+import { ScrollArea } from '@/components/ui/scroll-area';
+import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
 
 interface MessagePart {
   type: string;
@@ -33,101 +36,136 @@ export function MessageList({ messages }: MessageListProps) {
   }, [messages]);
 
   return (
-    <div className="flex-1 overflow-y-auto px-4 py-6 space-y-4">
-      <AnimatePresence mode="popLayout">
-        {messages.map((message, index) => {
-          const isUser = message.role === 'user';
-          
-          // ✅ AI SDK 6.0 使用 parts 数组
-          const content = message.parts
-            ?.filter((part) => part.type === 'text')
-            .map((part) => part.text)
-            .join('') || message.content || '';
+    <ScrollArea className="flex-1">
+      <div className="max-w-3xl mx-auto px-6 py-6 space-y-6">
+        {messages.map((message, index) => (
+          <MessageBubble key={message.id} message={message} index={index} />
+        ))}
+        <div ref={bottomRef} />
+      </div>
+    </ScrollArea>
+  );
+}
 
-          return (
-            <motion.div
-              key={message.id}
-              initial={{ opacity: 0, y: 20, scale: 0.95 }}
-              animate={{ opacity: 1, y: 0, scale: 1 }}
-              transition={{
-                duration: 0.4,
-                delay: index * 0.02,
-                ease: [0.23, 1, 0.32, 1],
+function MessageBubble({ message, index }: { message: Message; index: number }) {
+  const [copied, setCopied] = useState(false);
+  const isUser = message.role === 'user';
+  
+  const content = message.parts
+    ?.filter((part) => part.type === 'text')
+    .map((part) => part.text)
+    .join('') || message.content || '';
+
+  const handleCopy = async () => {
+    await navigator.clipboard.writeText(content);
+    setCopied(true);
+    setTimeout(() => setCopied(false), 2000);
+  };
+
+  return (
+    <div
+      style={{ animationDelay: `${index * 0.05}s` }}
+      className={cn('flex gap-4 animate-fade-in', isUser ? 'flex-row-reverse' : '')}
+    >
+      {/* 头像 */}
+      <Avatar className="h-8 w-8">
+        <AvatarFallback className={cn(
+          isUser ? 'bg-primary text-primary-foreground' : 'bg-emerald-500 text-white'
+        )}>
+          {isUser ? <User size={14} /> : <Bot size={14} />}
+        </AvatarFallback>
+      </Avatar>
+
+      {/* 消息内容 */}
+      <div className={cn('flex-1 group', isUser ? 'flex justify-end' : '')}>
+        <div
+          className={cn(
+            'rounded-2xl px-4 py-3 max-w-[85%]',
+            isUser
+              ? 'bg-primary text-primary-foreground'
+              : 'bg-muted text-foreground'
+          )}
+        >
+          <div className={cn('prose prose-sm max-w-none', isUser ? 'prose-invert' : '')}>
+            <ReactMarkdown
+              remarkPlugins={[remarkGfm]}
+              components={{
+                pre: ({ children }) => (
+                  <pre className="bg-background/50 rounded-lg p-3 overflow-x-auto my-2 text-sm border">
+                    {children}
+                  </pre>
+                ),
+                code: ({ className, children, ...props }) => {
+                  const isInline = !className;
+                  return isInline ? (
+                    <code 
+                      className={cn(
+                        'px-1.5 py-0.5 rounded text-sm font-mono',
+                        isUser ? 'bg-primary-foreground/20' : 'bg-primary/10 text-primary'
+                      )} 
+                      {...props}
+                    >
+                      {children}
+                    </code>
+                  ) : (
+                    <code className={className} {...props}>{children}</code>
+                  );
+                },
+                p: ({ children }) => <p className="leading-relaxed mb-2 last:mb-0">{children}</p>,
               }}
-              className={cn(
-                'flex gap-3 max-w-4xl',
-                isUser ? 'ml-auto flex-row-reverse' : 'mr-auto'
-              )}
             >
-              {/* 头像 */}
-              <motion.div
-                initial={{ scale: 0 }}
-                animate={{ scale: 1 }}
-                transition={{ delay: index * 0.02 + 0.1, type: 'spring' }}
-                className={cn(
-                  'flex-shrink-0 w-8 h-8 rounded-full flex items-center justify-center',
-                  isUser
-                    ? 'bg-gradient-to-br from-indigo-500 to-purple-500'
-                    : 'bg-gradient-to-br from-emerald-500 to-cyan-500'
-                )}
-              >
-                {isUser ? (
-                  <User size={16} className="text-white" />
-                ) : (
-                  <Bot size={16} className="text-white" />
-                )}
-              </motion.div>
+              {content}
+            </ReactMarkdown>
+          </div>
 
-              {/* 消息内容 */}
-              <motion.div
-                whileHover={{ scale: 1.01 }}
-                className={cn(
-                  'rounded-2xl px-4 py-3 max-w-[80%]',
-                  isUser
-                    ? 'bg-gradient-to-r from-indigo-500/80 to-purple-500/80 text-white'
-                    : 'bg-white/10 backdrop-blur-md border border-white/10 text-white/90'
-                )}
-              >
-                <div className="prose prose-invert prose-sm max-w-none">
-                  <ReactMarkdown
-                    remarkPlugins={[remarkGfm]}
-                    components={{
-                      pre: ({ children }) => (
-                        <pre className="bg-black/30 rounded-lg p-3 overflow-x-auto my-2">
-                          {children}
-                        </pre>
-                      ),
-                      code: ({ className, children, ...props }) => {
-                        const isInline = !className;
-                        return isInline ? (
-                          <code className="bg-white/10 px-1.5 py-0.5 rounded text-pink-300" {...props}>
-                            {children}
-                          </code>
-                        ) : (
-                          <code className={className} {...props}>{children}</code>
-                        );
-                      },
-                    }}
-                  >
-                    {content}
-                  </ReactMarkdown>
-                </div>
+          {/* 工具调用 */}
+          {message.parts?.filter((p) => p.type.startsWith('tool-')).map((part, i) => (
+            <div key={i} className="mt-3 p-3 bg-amber-500/10 border border-amber-500/20 rounded-lg text-xs">
+              <span className="text-amber-600 font-medium">🔧 {part.type.replace('tool-', '')}</span>
+            </div>
+          ))}
+        </div>
 
-                {/* 显示工具调用结果 */}
-                {message.parts?.filter((p) => p.type.startsWith('tool-')).map((part, i) => (
-                  <div key={i} className="mt-2 p-2 bg-white/5 rounded-lg text-xs">
-                    <span className="text-amber-400">🔧 Tool: {part.type.replace('tool-', '')}</span>
-                    <pre className="mt-1 text-white/50 overflow-x-auto">
-                      {JSON.stringify(part, null, 2)}
-                    </pre>
-                  </div>
-                ))}
-              </motion.div>
-            </motion.div>
-          );
-        })}
-      </AnimatePresence>
-      <div ref={bottomRef} />
+        {/* AI 消息操作栏 */}
+        {!isUser && (
+          <TooltipProvider>
+            <div className="flex items-center gap-1 mt-2 opacity-0 group-hover:opacity-100 transition-opacity">
+              <Tooltip>
+                <TooltipTrigger asChild>
+                  <Button variant="ghost" size="icon" className="h-7 w-7" onClick={handleCopy}>
+                    {copied ? <Check size={12} className="text-green-500" /> : <Copy size={12} />}
+                  </Button>
+                </TooltipTrigger>
+                <TooltipContent>复制</TooltipContent>
+              </Tooltip>
+              <Tooltip>
+                <TooltipTrigger asChild>
+                  <Button variant="ghost" size="icon" className="h-7 w-7">
+                    <ThumbsUp size={12} />
+                  </Button>
+                </TooltipTrigger>
+                <TooltipContent>有帮助</TooltipContent>
+              </Tooltip>
+              <Tooltip>
+                <TooltipTrigger asChild>
+                  <Button variant="ghost" size="icon" className="h-7 w-7">
+                    <ThumbsDown size={12} />
+                  </Button>
+                </TooltipTrigger>
+                <TooltipContent>没帮助</TooltipContent>
+              </Tooltip>
+              <Tooltip>
+                <TooltipTrigger asChild>
+                  <Button variant="ghost" size="icon" className="h-7 w-7">
+                    <RotateCcw size={12} />
+                  </Button>
+                </TooltipTrigger>
+                <TooltipContent>重新生成</TooltipContent>
+              </Tooltip>
+            </div>
+          </TooltipProvider>
+        )}
+      </div>
     </div>
   );
 }
