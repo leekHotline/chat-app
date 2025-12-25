@@ -1,8 +1,10 @@
 This is a [Next.js](https://nextjs.org) project bootstrapped with [`create-next-app`](https://nextjs.org/docs/app/api-reference/cli/create-next-app).
+<img width="1860" height="915" alt="图片" src="https://github.com/user-attachments/assets/a9800800-f303-44ce-951a-9637bf03f7b9" />
+
 
 # Online Url:
 https://chat-all-app.vercel.app
-![Uploading 图片.png…]()
+
 
 ## Getting Started
 
