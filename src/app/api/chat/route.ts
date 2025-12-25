@@ -1,5 +1,5 @@
 // src/app/api/chat/route.ts
-import { streamText, convertToCoreMessages } from 'ai';
+import { streamText } from 'ai';
 import { getModel } from '@/lib/ai/providers/factory';
 import { mcpTools } from '@/lib/ai/mcp/tools';
 import { db, messages as messagesTable, conversations } from '@/lib/db';
@@ -19,14 +19,13 @@ export async function POST(req: Request) {
     // 获取模型实例
     const aiModel = getModel(provider as AIProvider, model, apiKey);
 
-    // 流式响应
+    // 流式响应 - 直接传递 messages，不需要转换
     const result = await streamText({
       model: aiModel,
-      messages: convertToCoreMessages(messages),
+      messages: messages,
       tools: mcpTools,
-      maxSteps: 5, // 允许多步工具调用
+      maxSteps: 5,
       onFinish: async ({ text, toolCalls }) => {
-        // 保存消息到数据库
         if (conversationId) {
           await db.insert(messagesTable).values({
             conversationId,
@@ -35,7 +34,6 @@ export async function POST(req: Request) {
             toolCalls: toolCalls?.length ? toolCalls : null,
           });
 
-          // 更新会话时间
           await db
             .update(conversations)
             .set({ updatedAt: new Date() })
