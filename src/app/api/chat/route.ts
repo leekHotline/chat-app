@@ -11,18 +11,13 @@ export async function POST(req: Request) {
   try {
     const { messages, model, provider, encryptedApiKey } = await req.json();
 
-    // 解密 API Key
     const apiKey = decrypt(encryptedApiKey);
-
-    // 获取模型实例
     const aiModel = getModel(provider as AIProvider, model, apiKey);
 
-    // 流式响应 - AI SDK v6 语法
     const result = streamText({
       model: aiModel,
       messages: messages,
       tools: mcpTools,
-      maxSteps: 5,
     });
 
     return result.toDataStreamResponse();
