@@ -2,8 +2,11 @@
 'use client';
 
 import { KeyboardEvent, useRef, useEffect } from 'react';
-import { Send, Square, Sparkles } from 'lucide-react';
-import { cn } from '@/lib/utils/cn';
+import { Send, Square, Paperclip, Image, Mic } from 'lucide-react';
+import { cn } from '@/lib/utils';
+import { Button } from '@/components/ui/button';
+import { Textarea } from '@/components/ui/textarea';
+import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
 
 interface ChatInputProps {
   input: string;
@@ -16,7 +19,6 @@ interface ChatInputProps {
 export function ChatInput({ input, setInput, onSend, isLoading, onStop }: ChatInputProps) {
   const textareaRef = useRef<HTMLTextAreaElement>(null);
 
-  // 自动调整高度
   useEffect(() => {
     const textarea = textareaRef.current;
     if (textarea) {
@@ -39,34 +41,38 @@ export function ChatInput({ input, setInput, onSend, isLoading, onStop }: ChatIn
   };
 
   return (
-    <div 
-      className="p-6 animate-fade-in-up" 
-      style={{ animationDelay: '0.25s' }}
-    >
+    <div className="p-6 border-t border-border animate-fade-in">
       <div className="max-w-3xl mx-auto">
         {/* 输入框容器 */}
-        <div 
-          className={cn(
-            'relative bg-white rounded-2xl border transition-all duration-300',
-            'shadow-sm hover:shadow-md',
-            input.trim() 
-              ? 'border-indigo-200 shadow-indigo-100/50' 
-              : 'border-gray-200'
-          )}
-        >
-          {/* 装饰渐变 */}
-          {input.trim() && (
-            <div className="absolute inset-0 rounded-2xl bg-gradient-to-r from-indigo-500/5 to-purple-500/5 pointer-events-none" />
-          )}
-
-          <div className="relative flex items-end p-2">
-            {/* AI 图标 */}
-            <div className="flex-shrink-0 w-10 h-10 rounded-xl bg-gradient-to-br from-indigo-500 to-purple-500 flex items-center justify-center mr-2 shadow-sm">
-              <Sparkles size={18} className="text-white" />
-            </div>
+        <div className={cn(
+          'relative rounded-xl border bg-card shadow-sm transition-all duration-200',
+          input.trim() ? 'border-primary/50 ring-1 ring-primary/20' : 'border-border'
+        )}>
+          <div className="flex items-end p-2 gap-2">
+            {/* 左侧工具按钮 */}
+            <TooltipProvider>
+              <div className="flex items-center gap-1 pb-1">
+                <Tooltip>
+                  <TooltipTrigger asChild>
+                    <Button variant="ghost" size="icon" className="h-8 w-8">
+                      <Paperclip size={16} />
+                    </Button>
+                  </TooltipTrigger>
+                  <TooltipContent>附件</TooltipContent>
+                </Tooltip>
+                <Tooltip>
+                  <TooltipTrigger asChild>
+                    <Button variant="ghost" size="icon" className="h-8 w-8">
+                      <Image size={16} />
+                    </Button>
+                  </TooltipTrigger>
+                  <TooltipContent>图片</TooltipContent>
+                </Tooltip>
+              </div>
+            </TooltipProvider>
 
             {/* 文本输入 */}
-            <textarea
+            <Textarea
               ref={textareaRef}
               value={input}
               onChange={(e) => setInput(e.target.value)}
@@ -74,34 +80,45 @@ export function ChatInput({ input, setInput, onSend, isLoading, onStop }: ChatIn
               placeholder="输入消息，Shift + Enter 换行..."
               rows={1}
               className={cn(
-                'flex-1 bg-transparent text-gray-800 placeholder-gray-400',
-                'resize-none outline-none py-2.5 px-1 text-sm leading-relaxed',
-                'min-h-[40px] max-h-[160px]'
+                'flex-1 border-0 bg-transparent shadow-none resize-none',
+                'focus-visible:ring-0 min-h-[40px] max-h-[160px] py-2'
               )}
               disabled={isLoading}
             />
 
-            {/* 发送按钮 */}
-            <button
-              onClick={isLoading ? onStop : handleSubmit}
-              disabled={!isLoading && !input.trim()}
-              className={cn(
-                'flex-shrink-0 w-10 h-10 rounded-xl flex items-center justify-center',
-                'transition-all duration-200 btn-press',
-                isLoading
-                  ? 'bg-gray-100 text-gray-500 hover:bg-red-50 hover:text-red-500'
-                  : input.trim()
-                  ? 'bg-gradient-to-r from-indigo-500 to-indigo-600 text-white shadow-md shadow-indigo-500/25 hover:shadow-lg hover-scale'
-                  : 'bg-gray-100 text-gray-300 cursor-not-allowed'
-              )}
-            >
-              {isLoading ? <Square size={16} /> : <Send size={16} />}
-            </button>
+            {/* 右侧按钮 */}
+            <TooltipProvider>
+              <div className="flex items-center gap-1 pb-1">
+                <Tooltip>
+                  <TooltipTrigger asChild>
+                    <Button variant="ghost" size="icon" className="h-8 w-8">
+                      <Mic size={16} />
+                    </Button>
+                  </TooltipTrigger>
+                  <TooltipContent>语音</TooltipContent>
+                </Tooltip>
+                
+                {isLoading ? (
+                  <Button variant="destructive" size="icon" onClick={onStop} className="h-9 w-9">
+                    <Square size={16} />
+                  </Button>
+                ) : (
+                  <Button 
+                    size="icon" 
+                    onClick={handleSubmit}
+                    disabled={!input.trim()}
+                    className="h-9 w-9"
+                  >
+                    <Send size={16} />
+                  </Button>
+                )}
+              </div>
+            </TooltipProvider>
           </div>
         </div>
 
         {/* 底部提示 */}
-        <p className="text-center text-xs text-gray-400 mt-3">
+        <p className="text-center text-xs text-muted-foreground mt-3">
           AI 生成内容仅供参考，请注意核实
         </p>
       </div>

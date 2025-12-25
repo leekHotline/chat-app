@@ -5,8 +5,8 @@ import { useChat } from '@/hooks/useChat';
 import { MessageList } from './MessageList';
 import { ChatInput } from './ChatInput';
 import { ModelSelector } from './ModelSelector';
-import { Plus, AlertCircle, Sparkles } from 'lucide-react';
-import { Button } from '@/components/ui/Button';
+import { AlertCircle, Sparkles } from 'lucide-react';
+import { Badge } from '@/components/ui/badge';
 
 export function ChatContainer() {
   const {
@@ -28,28 +28,17 @@ export function ChatContainer() {
   };
 
   return (
-    <div className="flex-1 flex flex-col h-full">
+    <div className="flex-1 flex flex-col h-full bg-background">
       {/* 头部 */}
-      <header 
-        className="flex items-center justify-between px-6 py-3 animate-fade-in-up"
-        style={{ animationDelay: '0.15s' }}
-      >
-        <Button variant="secondary" size="sm" onClick={createNewChat}>
-          <Plus size={16} />
-          新对话
-        </Button>
+      <header className="flex items-center justify-between px-6 py-3 border-b border-border animate-fade-in">
         <ModelSelector />
+        {error && (
+          <Badge variant="destructive" className="gap-1">
+            <AlertCircle size={12} />
+            {error}
+          </Badge>
+        )}
       </header>
-
-      {/* 错误提示 */}
-      {error && (
-        <div className="mx-6 mt-2 p-4 bg-red-50 border border-red-100 rounded-xl flex items-center gap-3 text-red-600 animate-scale-in">
-          <div className="w-8 h-8 rounded-full bg-red-100 flex items-center justify-center flex-shrink-0">
-            <AlertCircle size={16} />
-          </div>
-          <span className="text-sm">{error}</span>
-        </div>
-      )}
 
       {/* 消息列表 */}
       {messages.length > 0 ? (
@@ -73,35 +62,30 @@ export function ChatContainer() {
 function EmptyState() {
   return (
     <div className="flex-1 flex items-center justify-center px-6">
-      <div 
-        className="text-center animate-fade-in-up max-w-md"
-        style={{ animationDelay: '0.2s' }}
-      >
-        {/* 动画图标 */}
-        <div className="relative w-20 h-20 mx-auto mb-6">
-          <div className="absolute inset-0 bg-gradient-to-br from-indigo-500 to-purple-500 rounded-2xl rotate-6 opacity-20 animate-pulse" />
-          <div className="absolute inset-0 bg-gradient-to-br from-indigo-500 to-purple-500 rounded-2xl flex items-center justify-center shadow-lg animate-float">
-            <Sparkles size={32} className="text-white" />
-          </div>
+      <div className="text-center animate-fade-in">
+        {/* 图标 */}
+        <div className="w-16 h-16 mx-auto mb-6 rounded-2xl bg-primary/10 flex items-center justify-center animate-float">
+          <Sparkles size={28} className="text-primary" />
         </div>
         
-        <h2 className="text-xl font-semibold text-gray-800 mb-2">
+        <h2 className="text-xl font-semibold text-foreground mb-2">
           开始新对话
         </h2>
-        <p className="text-gray-500 text-sm leading-relaxed">
+        <p className="text-muted-foreground text-sm max-w-sm mx-auto">
           支持 GPT、Claude、Gemini 等多种 AI 模型
         </p>
 
         {/* 快捷提示 */}
         <div className="mt-8 flex flex-wrap justify-center gap-2">
-          {['写一首诗', '解释代码', '翻译文本'].map((text, i) => (
-            <span 
+          {['写一首诗', '解释代码', '翻译文本', '头脑风暴'].map((text, i) => (
+            <Badge 
               key={text}
-              className="px-3 py-1.5 bg-gray-100 text-gray-600 text-xs rounded-full hover:bg-indigo-50 hover:text-indigo-600 transition-colors cursor-pointer"
-              style={{ animationDelay: `${0.3 + i * 0.1}s` }}
+              variant="secondary"
+              className="cursor-pointer hover:bg-accent transition-colors"
+              style={{ animationDelay: `${0.2 + i * 0.05}s` }}
             >
               {text}
-            </span>
+            </Badge>
           ))}
         </div>
       </div>
