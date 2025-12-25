@@ -2,8 +2,6 @@
 import { streamText } from 'ai';
 import { getModel } from '@/lib/ai/providers/factory';
 import { mcpTools } from '@/lib/ai/mcp/tools';
-import { db, messages as messagesTable, conversations } from '@/lib/db';
-import { eq } from 'drizzle-orm';
 import { decrypt } from '@/lib/utils/encryption';
 import { AIProvider } from '@/types';
 
@@ -11,7 +9,7 @@ export const runtime = 'edge';
 
 export async function POST(req: Request) {
   try {
-    const { messages, model, provider, conversationId, encryptedApiKey } = await req.json();
+    const { messages, model, provider, encryptedApiKey } = await req.json();
 
     // 解密 API Key
     const apiKey = decrypt(encryptedApiKey);
@@ -19,27 +17,12 @@ export async function POST(req: Request) {
     // 获取模型实例
     const aiModel = getModel(provider as AIProvider, model, apiKey);
 
-    // 流式响应 - 直接传递 messages，不需要转换
-    const result = await streamText({
+    // 流式响应 - AI SDK v6 语法
+    const result = streamText({
       model: aiModel,
       messages: messages,
       tools: mcpTools,
       maxSteps: 5,
-      onFinish: async ({ text, toolCalls }) => {
-        if (conversationId) {
-          await db.insert(messagesTable).values({
-            conversationId,
-            role: 'assistant',
-            content: text,
-            toolCalls: toolCalls?.length ? toolCalls : null,
-          });
-
-          await db
-            .update(conversations)
-            .set({ updatedAt: new Date() })
-            .where(eq(conversations.id, conversationId));
-        }
-      },
     });
 
     return result.toDataStreamResponse();
