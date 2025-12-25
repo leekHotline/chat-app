@@ -2,16 +2,14 @@
 'use client';
 
 import { useState } from 'react';
-import { motion } from 'framer-motion';
-import { Eye, EyeOff, Trash2, Check, Plus } from 'lucide-react';
+import { Eye, EyeOff, Trash2, Check, Plus, Key } from 'lucide-react';
 import { Button } from '@/components/ui/Button';
 import { Modal } from '@/components/ui/Modal';
-import { GlassCard } from '@/components/ui/GlassCard';
 import { useChatStore } from '@/stores/chatStore';
 import { PROVIDERS, AIProvider } from '@/types';
 import CryptoJS from 'crypto-js';
+import { cn } from '@/lib/utils/cn';
 
-// 客户端加密（实际生产环境应在服务端加密）
 const encryptKey = (key: string) => {
   return CryptoJS.AES.encrypt(key, 'client-secret').toString();
 };
@@ -51,121 +49,140 @@ export function ApiKeyManager() {
       const decrypted = decryptKey(encrypted);
       return decrypted || '解密失败';
     }
-    return '••••••••••••••••••••';
+    return '••••••••••••••••';
   };
+
+  const configuredCount = Object.values(apiKeys).filter(Boolean).length;
 
   return (
     <>
-      <Button variant="ghost" onClick={() => setIsOpen(true)}>
-        ⚙️ API Keys
+      <Button variant="secondary" size="sm" onClick={() => setIsOpen(true)}>
+        <Key size={14} />
+        API Keys
+        {configuredCount > 0 && (
+          <span className="ml-1 w-5 h-5 rounded-full bg-green-500 text-white text-xs flex items-center justify-center">
+            {configuredCount}
+          </span>
+        )}
       </Button>
 
       <Modal isOpen={isOpen} onClose={() => setIsOpen(false)} title="API Key 管理">
-        <div className="space-y-4">
+        <div className="space-y-3">
           {Object.entries(PROVIDERS).map(([providerKey, config], index) => {
             const hasKey = !!apiKeys[providerKey as AIProvider];
 
             return (
-              <motion.div
+              <div
                 key={providerKey}
-                initial={{ opacity: 0, x: -20 }}
-                animate={{ opacity: 1, x: 0 }}
-                transition={{ delay: index * 0.1 }}
+                style={{ animationDelay: `${index * 0.05}s` }}
+                className={cn(
+                  'p-4 rounded-xl border transition-all duration-200 animate-fade-in-up opacity-0',
+                  hasKey 
+                    ? 'bg-green-50 border-green-100' 
+                    : 'bg-gray-50 border-gray-100 hover:border-gray-200'
+                )}
               >
-                <GlassCard variant="light" className="p-4">
-                  <div className="flex items-center justify-between mb-2">
-                    <div className="flex items-center gap-2">
-                      <span className="font-medium text-white">{config.name}</span>
-                      {hasKey && (
-                        <motion.span
-                          initial={{ scale: 0 }}
-                          animate={{ scale: 1 }}
-                          className="w-2 h-2 rounded-full bg-green-400"
-                        />
-                      )}
-                    </div>
-                    <div className="flex items-center gap-2">
-                      {hasKey ? (
-                        <>
-                          <motion.button
-                            whileHover={{ scale: 1.1 }}
-                            whileTap={{ scale: 0.9 }}
-                            onClick={() => toggleShowKey(providerKey)}
-                            className="p-1.5 text-white/50 hover:text-white hover:bg-white/10 rounded-lg"
-                          >
-                            {showKey[providerKey] ? <EyeOff size={16} /> : <Eye size={16} />}
-                          </motion.button>
-                          <motion.button
-                            whileHover={{ scale: 1.1 }}
-                            whileTap={{ scale: 0.9 }}
-                            onClick={() => removeApiKey(providerKey as AIProvider)}
-                            className="p-1.5 text-red-400 hover:text-red-300 hover:bg-red-500/10 rounded-lg"
-                          >
-                            <Trash2 size={16} />
-                          </motion.button>
-                        </>
-                      ) : (
-                        <motion.button
-                          whileHover={{ scale: 1.1 }}
-                          whileTap={{ scale: 0.9 }}
-                          onClick={() => setEditingProvider(providerKey as AIProvider)}
-                          className="p-1.5 text-indigo-400 hover:text-indigo-300 hover:bg-indigo-500/10 rounded-lg"
-                        >
-                          <Plus size={16} />
-                        </motion.button>
-                      )}
-                    </div>
-                  </div>
-
-                  {hasKey ? (
-                    <p className="text-sm text-white/50 font-mono">
-                      {getMaskedKey(apiKeys[providerKey as AIProvider], providerKey)}
-                    </p>
-                  ) : editingProvider === providerKey ? (
-                    <motion.div
-                      initial={{ height: 0, opacity: 0 }}
-                      animate={{ height: 'auto', opacity: 1 }}
-                      className="flex gap-2"
-                    >
-                      <input
-                        type="password"
-                        value={inputKey}
-                        onChange={(e) => setInputKey(e.target.value)}
-                        placeholder={`输入 ${config.name} API Key`}
-                        className="flex-1 bg-white/5 border border-white/10 rounded-lg px-3 py-2 text-sm text-white placeholder-white/30 focus:outline-none focus:border-indigo-500"
-                        autoFocus
-                      />
-                      <Button size="sm" onClick={handleSave}>
-                        <Check size={16} />
-                      </Button>
-                    </motion.div>
-                  ) : (
-                    <p className="text-sm text-white/30">未配置</p>
-                  )}
-
-                  {/* 支持的模型 */}
-                  <div className="mt-2 flex flex-wrap gap-1">
-                    {config.models.slice(0, 3).map((model) => (
-                      <span
-                        key={model}
-                        className="text-xs bg-white/5 text-white/40 px-2 py-0.5 rounded"
-                      >
-                        {model}
-                      </span>
-                    ))}
-                    {config.models.length > 3 && (
-                      <span className="text-xs text-white/30">
-                        +{config.models.length - 3}
-                      </span>
+                <div className="flex items-center justify-between mb-2">
+                  <div className="flex items-center gap-2">
+                    <span className="font-semibold text-gray-800">{config.name}</span>
+                    {hasKey && (
+                      <span className="w-2 h-2 rounded-full bg-green-500 animate-pulse" />
                     )}
                   </div>
-                </GlassCard>
-              </motion.div>
+                  <div className="flex items-center gap-1">
+                    {hasKey ? (
+                      <>
+                        <button
+                          onClick={() => toggleShowKey(providerKey)}
+                          className={cn(
+                            'p-2 rounded-lg transition-all duration-200',
+                            'text-gray-400 hover:text-gray-600 hover:bg-white',
+                            'hover-scale'
+                          )}
+                        >
+                          {showKey[providerKey] ? <EyeOff size={16} /> : <Eye size={16} />}
+                        </button>
+                        <button
+                          onClick={() => removeApiKey(providerKey as AIProvider)}
+                          className={cn(
+                            'p-2 rounded-lg transition-all duration-200',
+                            'text-gray-400 hover:text-red-500 hover:bg-red-50',
+                            'hover-scale'
+                          )}
+                        >
+                          <Trash2 size={16} />
+                        </button>
+                      </>
+                    ) : (
+                      <button
+                        onClick={() => setEditingProvider(providerKey as AIProvider)}
+                        className={cn(
+                          'p-2 rounded-lg transition-all duration-200',
+                          'text-indigo-500 hover:bg-indigo-50',
+                          'hover-scale'
+                        )}
+                      >
+                        <Plus size={16} />
+                      </button>
+                    )}
+                  </div>
+                </div>
+
+                {hasKey ? (
+                  <p className="text-sm text-gray-500 font-mono truncate">
+                    {getMaskedKey(apiKeys[providerKey as AIProvider], providerKey)}
+                  </p>
+                ) : editingProvider === providerKey ? (
+                  <div className="flex gap-2 animate-fade-in-up">
+                    <input
+                      type="password"
+                      value={inputKey}
+                      onChange={(e) => setInputKey(e.target.value)}
+                      onKeyDown={(e) => e.key === 'Enter' && handleSave()}
+                      placeholder={`输入 ${config.name} API Key`}
+                      className={cn(
+                        'flex-1 bg-white border border-gray-200 rounded-xl',
+                        'px-3 py-2 text-sm text-gray-800 placeholder-gray-400',
+                        'focus:outline-none focus:border-indigo-300 focus:ring-2 focus:ring-indigo-100',
+                        'transition-all duration-200'
+                      )}
+                      autoFocus
+                    />
+                    <Button size="sm" onClick={handleSave}>
+                      <Check size={16} />
+                    </Button>
+                  </div>
+                ) : (
+                  <p className="text-sm text-gray-400">未配置</p>
+                )}
+
+                {/* 支持的模型 */}
+                <div className="mt-3 flex flex-wrap gap-1.5">
+                  {config.models.slice(0, 3).map((model) => (
+                    <span
+                      key={model}
+                      className={cn(
+                        'text-xs px-2 py-1 rounded-lg',
+                        hasKey 
+                          ? 'bg-green-100 text-green-700' 
+                          : 'bg-gray-100 text-gray-500'
+                      )}
+                    >
+                      {model}
+                    </span>
+                  ))}
+                  {config.models.length > 3 && (
+                    <span className="text-xs text-gray-400 px-2 py-1">
+                      +{config.models.length - 3} 更多
+                    </span>
+                  )}
+                </div>
+              </div>
             );
           })}
 
-          <p className="text-xs text-white/30 text-center mt-4">
-            API Key 加密存储在本地，不会上传到服务器
+          <p className="text-xs text-gray-400 text-center pt-2">
+            🔒 API Key 加密存储在本地浏览器
           </p>
         </div>
       </Modal>

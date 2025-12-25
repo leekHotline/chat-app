@@ -1,15 +1,15 @@
 // src/components/chat/ModelSelector.tsx
 'use client';
 
-import { useState } from 'react';
-import { motion, AnimatePresence } from 'framer-motion';
-import { ChevronDown, Check, Sparkles } from 'lucide-react';
+import { useState, useRef, useEffect } from 'react';
+import { ChevronDown, Check, Cpu } from 'lucide-react';
 import { useChatStore } from '@/stores/chatStore';
 import { PROVIDERS, AIProvider } from '@/types';
 import { cn } from '@/lib/utils/cn';
 
 export function ModelSelector() {
   const [isOpen, setIsOpen] = useState(false);
+  const dropdownRef = useRef<HTMLDivElement>(null);
   const { currentProvider, currentModel, apiKeys, setProvider, setModel } = useChatStore();
 
   const availableProviders = Object.entries(PROVIDERS).filter(
@@ -18,75 +18,103 @@ export function ModelSelector() {
 
   const currentProviderConfig = PROVIDERS[currentProvider];
 
+  // 点击外部关闭
+  useEffect(() => {
+    const handleClickOutside = (e: MouseEvent) => {
+      if (dropdownRef.current && !dropdownRef.current.contains(e.target as Node)) {
+        setIsOpen(false);
+      }
+    };
+    document.addEventListener('mousedown', handleClickOutside);
+    return () => document.removeEventListener('mousedown', handleClickOutside);
+  }, []);
+
   return (
-    <div className="relative">
-      <motion.button
-        whileHover={{ scale: 1.02 }}
-        whileTap={{ scale: 0.98 }}
+    <div className="relative" ref={dropdownRef}>
+      <button
         onClick={() => setIsOpen(!isOpen)}
-        className="glass px-4 py-2 rounded-xl flex items-center gap-2 text-white/80 hover:text-white transition-colors"
+        className={cn(
+          'flex items-center gap-2 px-3 py-2 rounded-xl',
+          'bg-white border border-gray-200 shadow-sm',
+          'text-gray-700 text-sm font-medium',
+          'transition-all duration-200 hover:border-gray-300 hover:shadow-md',
+          'hover-scale btn-press',
+          isOpen && 'border-indigo-300 shadow-md'
+        )}
       >
-        <Sparkles size={16} className="text-indigo-400" />
-        <span className="text-sm">
-          {currentProviderConfig?.name} / {currentModel}
+        <div className="w-6 h-6 rounded-lg bg-gradient-to-br from-indigo-500 to-purple-500 flex items-center justify-center">
+          <Cpu size={12} className="text-white" />
+        </div>
+        <span className="max-w-[120px] truncate">
+          {currentModel}
         </span>
-        <motion.div animate={{ rotate: isOpen ? 180 : 0 }}>
-          <ChevronDown size={16} />
-        </motion.div>
-      </motion.button>
+        <ChevronDown 
+          size={14} 
+          className={cn(
+            'text-gray-400 transition-transform duration-200',
+            isOpen && 'rotate-180'
+          )} 
+        />
+      </button>
 
-      <AnimatePresence>
-        {isOpen && (
-          <>
-            {/* 点击外部关闭 */}
-            <div
-              className="fixed inset-0 z-10"
-              onClick={() => setIsOpen(false)}
-            />
-
-            <motion.div
-              initial={{ opacity: 0, y: -10, scale: 0.95 }}
-              animate={{ opacity: 1, y: 0, scale: 1 }}
-              exit={{ opacity: 0, y: -10, scale: 0.95 }}
-              transition={{ duration: 0.2 }}
-              className="absolute top-full mt-2 right-0 z-20 glass-heavy rounded-xl p-2 min-w-[280px]"
-            >
-              {availableProviders.length === 0 ? (
-                <p className="text-white/50 text-sm p-2">请先配置 API Key</p>
-              ) : (
-                availableProviders.map(([providerKey, config]) => (
-                  <div key={providerKey} className="mb-2 last:mb-0">
-                    <p className="text-xs text-white/40 px-2 py-1">{config.name}</p>
-                    {config.models.map((model) => (
-                      <motion.button
+      {/* 下拉菜单 */}
+      {isOpen && (
+        <div 
+          className={cn(
+            'absolute top-full mt-2 right-0 z-50',
+            'w-64 bg-white rounded-2xl border border-gray-100',
+            'shadow-xl shadow-gray-200/50',
+            'animate-scale-in origin-top-right',
+            'overflow-hidden'
+          )}
+        >
+          {availableProviders.length === 0 ? (
+            <div className="p-4 text-center">
+              <p className="text-gray-500 text-sm">请先配置 API Key</p>
+            </div>
+          ) : (
+            <div className="py-2 max-h-[320px] overflow-y-auto">
+              {availableProviders.map(([providerKey, config]) => (
+                <div key={providerKey}>
+                  {/* Provider 标题 */}
+                  <div className="px-3 py-2 text-xs font-semibold text-gray-400 uppercase tracking-wider">
+                    {config.name}
+                  </div>
+                  
+                  {/* 模型列表 */}
+                  {config.models.map((model) => {
+                    const isSelected = currentProvider === providerKey && currentModel === model;
+                    return (
+                      <button
                         key={model}
-                        whileHover={{ x: 4 }}
                         onClick={() => {
                           setProvider(providerKey as AIProvider);
                           setModel(model);
                           setIsOpen(false);
                         }}
                         className={cn(
-                          'w-full flex items-center justify-between px-3 py-2 rounded-lg text-sm text-left',
-                          'transition-colors hover:bg-white/10',
-                          currentProvider === providerKey && currentModel === model
-                            ? 'bg-white/10 text-white'
-                            : 'text-white/70'
+                          'w-full flex items-center justify-between px-3 py-2.5',
+                          'text-sm text-left transition-all duration-150',
+                          isSelected
+                            ? 'bg-indigo-50 text-indigo-700'
+                            : 'text-gray-600 hover:bg-gray-50'
                         )}
                       >
-                        <span>{model}</span>
-                        {currentProvider === providerKey && currentModel === model && (
-                          <Check size={14} className="text-indigo-400" />
+                        <span className="font-medium">{model}</span>
+                        {isSelected && (
+                          <div className="w-5 h-5 rounded-full bg-indigo-500 flex items-center justify-center">
+                            <Check size={12} className="text-white" />
+                          </div>
                         )}
-                      </motion.button>
-                    ))}
-                  </div>
-                ))
-              )}
-            </motion.div>
-          </>
-        )}
-      </AnimatePresence>
+                      </button>
+                    );
+                  })}
+                </div>
+              ))}
+            </div>
+          )}
+        </div>
+      )}
     </div>
   );
 }

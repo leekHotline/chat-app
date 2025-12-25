@@ -5,8 +5,7 @@ import { useChat } from '@/hooks/useChat';
 import { MessageList } from './MessageList';
 import { ChatInput } from './ChatInput';
 import { ModelSelector } from './ModelSelector';
-import { motion } from 'framer-motion';
-import { MessageSquarePlus, AlertCircle } from 'lucide-react';
+import { Plus, AlertCircle, Sparkles } from 'lucide-react';
 import { Button } from '@/components/ui/Button';
 
 export function ChatContainer() {
@@ -31,30 +30,25 @@ export function ChatContainer() {
   return (
     <div className="flex-1 flex flex-col h-full">
       {/* 头部 */}
-      <motion.header
-        initial={{ y: -20, opacity: 0 }}
-        animate={{ y: 0, opacity: 1 }}
-        className="flex items-center justify-between p-4 border-b border-white/10"
+      <header 
+        className="flex items-center justify-between px-6 py-3 animate-fade-in-up"
+        style={{ animationDelay: '0.15s' }}
       >
-        <div className="flex items-center gap-3">
-          <Button variant="ghost" size="sm" onClick={createNewChat}>
-            <MessageSquarePlus size={18} />
-            <span className="hidden sm:inline">新对话</span>
-          </Button>
-        </div>
+        <Button variant="secondary" size="sm" onClick={createNewChat}>
+          <Plus size={16} />
+          新对话
+        </Button>
         <ModelSelector />
-      </motion.header>
+      </header>
 
       {/* 错误提示 */}
       {error && (
-        <motion.div
-          initial={{ opacity: 0, y: -10 }}
-          animate={{ opacity: 1, y: 0 }}
-          className="mx-4 mt-2 p-3 bg-red-500/20 border border-red-500/30 rounded-xl flex items-center gap-2 text-red-300"
-        >
-          <AlertCircle size={18} />
+        <div className="mx-6 mt-2 p-4 bg-red-50 border border-red-100 rounded-xl flex items-center gap-3 text-red-600 animate-scale-in">
+          <div className="w-8 h-8 rounded-full bg-red-100 flex items-center justify-center flex-shrink-0">
+            <AlertCircle size={16} />
+          </div>
           <span className="text-sm">{error}</span>
-        </motion.div>
+        </div>
       )}
 
       {/* 消息列表 */}
@@ -78,27 +72,39 @@ export function ChatContainer() {
 
 function EmptyState() {
   return (
-    <div className="flex-1 flex items-center justify-center">
-      <motion.div
-        initial={{ opacity: 0, scale: 0.9 }}
-        animate={{ opacity: 1, scale: 1 }}
-        transition={{ delay: 0.2 }}
-        className="text-center"
+    <div className="flex-1 flex items-center justify-center px-6">
+      <div 
+        className="text-center animate-fade-in-up max-w-md"
+        style={{ animationDelay: '0.2s' }}
       >
-        <motion.div
-          animate={{ y: [0, -10, 0] }}
-          transition={{ duration: 2, repeat: Infinity, ease: 'easeInOut' }}
-          className="text-6xl mb-4"
-        >
-          🚀
-        </motion.div>
-        <h2 className="text-xl font-semibold text-white/80 mb-2">
+        {/* 动画图标 */}
+        <div className="relative w-20 h-20 mx-auto mb-6">
+          <div className="absolute inset-0 bg-gradient-to-br from-indigo-500 to-purple-500 rounded-2xl rotate-6 opacity-20 animate-pulse" />
+          <div className="absolute inset-0 bg-gradient-to-br from-indigo-500 to-purple-500 rounded-2xl flex items-center justify-center shadow-lg animate-float">
+            <Sparkles size={32} className="text-white" />
+          </div>
+        </div>
+        
+        <h2 className="text-xl font-semibold text-gray-800 mb-2">
           开始新对话
         </h2>
-        <p className="text-white/50 text-sm max-w-md">
-          支持多种 AI 模型，Markdown 渲染，工具调用
+        <p className="text-gray-500 text-sm leading-relaxed">
+          支持 GPT、Claude、Gemini 等多种 AI 模型
         </p>
-      </motion.div>
+
+        {/* 快捷提示 */}
+        <div className="mt-8 flex flex-wrap justify-center gap-2">
+          {['写一首诗', '解释代码', '翻译文本'].map((text, i) => (
+            <span 
+              key={text}
+              className="px-3 py-1.5 bg-gray-100 text-gray-600 text-xs rounded-full hover:bg-indigo-50 hover:text-indigo-600 transition-colors cursor-pointer"
+              style={{ animationDelay: `${0.3 + i * 0.1}s` }}
+            >
+              {text}
+            </span>
+          ))}
+        </div>
+      </div>
     </div>
   );
 }

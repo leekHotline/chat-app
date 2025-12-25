@@ -2,16 +2,8 @@
 'use client';
 
 import { useState } from 'react';
-import { motion, AnimatePresence } from 'framer-motion';
-import { 
-  MessageSquare, 
-  Trash2, 
-  ChevronLeft, 
-  ChevronRight,
-  Settings 
-} from 'lucide-react';
+import { MessageSquare, Trash2, ChevronLeft, ChevronRight, Sparkles } from 'lucide-react';
 import { useChatStore } from '@/stores/chatStore';
-import { GlassCard } from '@/components/ui/GlassCard';
 import { cn } from '@/lib/utils/cn';
 
 export function Sidebar() {
@@ -24,110 +16,90 @@ export function Sidebar() {
   } = useChatStore();
 
   return (
-    <motion.aside
-      initial={{ x: -100, opacity: 0 }}
-      animate={{ 
-        x: 0, 
-        opacity: 1,
-        width: isCollapsed ? 60 : 280 
-      }}
-      transition={{ duration: 0.3 }}
-      className="h-full glass border-r border-white/10 flex flex-col"
+    <aside
+      className={cn(
+        'h-full bg-white border-r border-gray-100 flex flex-col animate-slide-in-left',
+        'transition-[width] duration-300 ease-out',
+        isCollapsed ? 'w-[68px]' : 'w-[260px]'
+      )}
     >
-      {/* 头部 */}
-      <div className="p-4 flex items-center justify-between border-b border-white/10">
-        <AnimatePresence mode="wait">
-          {!isCollapsed && (
-            <motion.h1
-              initial={{ opacity: 0 }}
-              animate={{ opacity: 1 }}
-              exit={{ opacity: 0 }}
-              className="text-lg font-bold bg-gradient-to-r from-indigo-400 to-purple-400 bg-clip-text text-transparent"
-            >
-              AI Chat
-            </motion.h1>
-          )}
-        </AnimatePresence>
-        <motion.button
-          whileHover={{ scale: 1.1 }}
-          whileTap={{ scale: 0.9 }}
+      {/* Logo */}
+      <div className="p-4 flex items-center justify-between">
+        {!isCollapsed && (
+          <div className="flex items-center gap-2 animate-fade-in-up">
+            <div className="w-8 h-8 rounded-xl bg-gradient-to-br from-indigo-500 to-purple-500 flex items-center justify-center shadow-md">
+              <Sparkles size={16} className="text-white" />
+            </div>
+            <span className="font-semibold text-gray-800">AI Chat</span>
+          </div>
+        )}
+        <button
           onClick={() => setIsCollapsed(!isCollapsed)}
-          className="p-2 text-white/50 hover:text-white hover:bg-white/10 rounded-lg"
+          className={cn(
+            'w-8 h-8 rounded-lg flex items-center justify-center',
+            'text-gray-400 hover:text-gray-600 hover:bg-gray-100',
+            'transition-all duration-200 hover-scale btn-press'
+          )}
         >
-          {isCollapsed ? <ChevronRight size={18} /> : <ChevronLeft size={18} />}
-        </motion.button>
+          {isCollapsed ? <ChevronRight size={16} /> : <ChevronLeft size={16} />}
+        </button>
       </div>
 
       {/* 对话列表 */}
-      <div className="flex-1 overflow-y-auto p-2 space-y-1">
-        <AnimatePresence>
+      <div className="flex-1 overflow-y-auto px-3 py-2">
+        <div className="space-y-1">
           {conversations.map((conv, index) => (
-            <motion.div
+            <button
               key={conv.id}
-              initial={{ opacity: 0, x: -20 }}
-              animate={{ opacity: 1, x: 0 }}
-              exit={{ opacity: 0, x: -20 }}
-              transition={{ delay: index * 0.05 }}
+              onClick={() => setCurrentConversation(conv.id)}
+              style={{ animationDelay: `${index * 0.05}s` }}
+              className={cn(
+                'w-full flex items-center gap-3 px-3 py-2.5 rounded-xl text-left',
+                'transition-all duration-200 group animate-fade-in-up opacity-0',
+                'hover-bg btn-press',
+                currentConversationId === conv.id
+                  ? 'bg-indigo-50 text-indigo-700'
+                  : 'text-gray-600 hover:text-gray-900'
+              )}
             >
-              <motion.button
-                whileHover={{ x: 4 }}
-                onClick={() => setCurrentConversation(conv.id)}
+              <MessageSquare 
+                size={18} 
                 className={cn(
-                  'w-full flex items-center gap-3 p-3 rounded-xl text-left transition-colors group',
-                  currentConversationId === conv.id
-                    ? 'bg-white/10 text-white'
-                    : 'text-white/60 hover:text-white hover:bg-white/5'
-                )}
-              >
-                <MessageSquare size={18} className="flex-shrink-0" />
-                {!isCollapsed && (
-                  <>
-                    <span className="flex-1 truncate text-sm">{conv.title}</span>
-                    <motion.button
-                      initial={{ opacity: 0 }}
-                      whileHover={{ scale: 1.1 }}
-                      className="opacity-0 group-hover:opacity-100 p-1 text-red-400 hover:bg-red-500/10 rounded"
-                      onClick={(e) => {
-                        e.stopPropagation();
-                        deleteConversation(conv.id);
-                      }}
-                    >
-                      <Trash2 size={14} />
-                    </motion.button>
-                  </>
-                )}
-              </motion.button>
-            </motion.div>
+                  'flex-shrink-0 transition-colors',
+                  currentConversationId === conv.id ? 'text-indigo-500' : 'text-gray-400'
+                )} 
+              />
+              {!isCollapsed && (
+                <>
+                  <span className="flex-1 truncate text-sm font-medium">{conv.title}</span>
+                  <button
+                    className={cn(
+                      'opacity-0 group-hover:opacity-100 p-1.5 rounded-lg',
+                      'text-gray-400 hover:text-red-500 hover:bg-red-50',
+                      'transition-all duration-200'
+                    )}
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      deleteConversation(conv.id);
+                    }}
+                  >
+                    <Trash2 size={14} />
+                  </button>
+                </>
+              )}
+            </button>
           ))}
-        </AnimatePresence>
+        </div>
 
         {conversations.length === 0 && !isCollapsed && (
-          <motion.p
-            initial={{ opacity: 0 }}
-            animate={{ opacity: 1 }}
-            className="text-center text-white/30 text-sm py-8"
-          >
-            暂无对话记录
-          </motion.p>
+          <div className="text-center py-12 animate-fade-in-up">
+            <div className="w-12 h-12 mx-auto mb-3 rounded-full bg-gray-100 flex items-center justify-center">
+              <MessageSquare size={20} className="text-gray-400" />
+            </div>
+            <p className="text-gray-400 text-sm">暂无对话</p>
+          </div>
         )}
       </div>
-
-      {/* 底部设置 */}
-      {!isCollapsed && (
-        <motion.div
-          initial={{ opacity: 0 }}
-          animate={{ opacity: 1 }}
-          className="p-4 border-t border-white/10"
-        >
-          <motion.button
-            whileHover={{ x: 4 }}
-            className="w-full flex items-center gap-3 p-2 rounded-lg text-white/50 hover:text-white hover:bg-white/5"
-          >
-            <Settings size={18} />
-            <span className="text-sm">设置</span>
-          </motion.button>
-        </motion.div>
-      )}
-    </motion.aside>
+    </aside>
   );
 }

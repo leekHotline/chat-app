@@ -1,42 +1,49 @@
 // src/components/ui/GlassCard.tsx
 'use client';
 
-import { motion, HTMLMotionProps } from 'framer-motion';
 import { cn } from '@/lib/utils/cn';
+import { HTMLAttributes } from 'react';
 
-interface GlassCardProps extends HTMLMotionProps<'div'> {
-  variant?: 'light' | 'medium' | 'heavy';
+interface GlassCardProps extends HTMLAttributes<HTMLDivElement> {
+  variant?: 'glass' | 'solid' | 'outlined';
   hover?: boolean;
+  padding?: 'none' | 'sm' | 'md' | 'lg';
   children: React.ReactNode;
 }
 
 export function GlassCard({
-  variant = 'medium',
-  hover = true,
+  variant = 'solid',
+  hover = false,
+  padding = 'md',
   className,
   children,
   ...props
 }: GlassCardProps) {
   const variants = {
-    light: 'bg-white/5 backdrop-blur-sm border-white/5',
-    medium: 'bg-white/10 backdrop-blur-md border-white/10',
-    heavy: 'bg-white/15 backdrop-blur-lg border-white/15',
+    glass: 'bg-white/80 backdrop-blur-xl border border-white/60 shadow-lg',
+    solid: 'bg-white border border-gray-100 shadow-sm',
+    outlined: 'bg-transparent border border-gray-200',
+  };
+
+  const paddings = {
+    none: '',
+    sm: 'p-3',
+    md: 'p-4',
+    lg: 'p-6',
   };
 
   return (
-    <motion.div
+    <div
       className={cn(
-        'rounded-2xl border',
+        'rounded-2xl animate-fade-in-up',
         variants[variant],
-        hover && 'transition-all duration-300 hover:bg-white/15 hover:scale-[1.02] hover:shadow-xl',
+        paddings[padding],
+        hover && 'hover-lift cursor-pointer',
         className
       )}
-      initial={{ opacity: 0, y: 20 }}
-      animate={{ opacity: 1, y: 0 }}
-      transition={{ duration: 0.4, ease: 'easeOut' }}
       {...props}
     >
       {children}
-    </motion.div>
+    </div>
   );
 }

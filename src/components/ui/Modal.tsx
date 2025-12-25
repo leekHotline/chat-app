@@ -1,9 +1,9 @@
 // src/components/ui/Modal.tsx
 'use client';
 
-import { motion, AnimatePresence } from 'framer-motion';
+import { useEffect } from 'react';
 import { X } from 'lucide-react';
-import { GlassCard } from './GlassCard';
+import { cn } from '@/lib/utils/cn';
 
 interface ModalProps {
   isOpen: boolean;
@@ -13,51 +13,59 @@ interface ModalProps {
 }
 
 export function Modal({ isOpen, onClose, title, children }: ModalProps) {
+  // ESC 关闭
+  useEffect(() => {
+    const handleEsc = (e: KeyboardEvent) => {
+      if (e.key === 'Escape') onClose();
+    };
+    if (isOpen) {
+      document.addEventListener('keydown', handleEsc);
+      document.body.style.overflow = 'hidden';
+    }
+    return () => {
+      document.removeEventListener('keydown', handleEsc);
+      document.body.style.overflow = '';
+    };
+  }, [isOpen, onClose]);
+
+  if (!isOpen) return null;
+
   return (
-    <AnimatePresence>
-      {isOpen && (
-        <>
-          {/* 背景遮罩 */}
-          <motion.div
-            initial={{ opacity: 0 }}
-            animate={{ opacity: 1 }}
-            exit={{ opacity: 0 }}
+    <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
+      {/* 背景遮罩 */}
+      <div
+        onClick={onClose}
+        className="absolute inset-0 bg-black/20 backdrop-blur-sm animate-fade-in-up"
+        style={{ animationDuration: '0.2s' }}
+      />
+
+      {/* 模态框 */}
+      <div
+        className={cn(
+          'relative w-full max-w-lg bg-white rounded-2xl shadow-2xl',
+          'animate-scale-in overflow-hidden'
+        )}
+      >
+        {/* 标题栏 */}
+        <div className="flex items-center justify-between px-6 py-4 border-b border-gray-100">
+          <h2 className="text-lg font-semibold text-gray-800">{title}</h2>
+          <button
             onClick={onClose}
-            className="fixed inset-0 bg-black/50 backdrop-blur-sm z-40"
-          />
-
-          {/* 模态框 */}
-          <motion.div
-            initial={{ opacity: 0, scale: 0.95, y: 20 }}
-            animate={{ opacity: 1, scale: 1, y: 0 }}
-            exit={{ opacity: 0, scale: 0.95, y: 20 }}
-            transition={{ type: 'spring', damping: 25, stiffness: 300 }}
-            className="fixed inset-0 flex items-center justify-center z-50 p-4"
+            className={cn(
+              'w-8 h-8 rounded-lg flex items-center justify-center',
+              'text-gray-400 hover:text-gray-600 hover:bg-gray-100',
+              'transition-all duration-200 hover-scale'
+            )}
           >
-            <GlassCard
-              variant="heavy"
-              hover={false}
-              className="w-full max-w-lg max-h-[80vh] overflow-hidden"
-            >
-              {/* 标题栏 */}
-              <div className="flex items-center justify-between p-4 border-b border-white/10">
-                <h2 className="text-lg font-semibold text-white">{title}</h2>
-                <motion.button
-                  whileHover={{ scale: 1.1, rotate: 90 }}
-                  whileTap={{ scale: 0.9 }}
-                  onClick={onClose}
-                  className="p-1 rounded-lg text-white/50 hover:text-white hover:bg-white/10"
-                >
-                  <X size={20} />
-                </motion.button>
-              </div>
+            <X size={18} />
+          </button>
+        </div>
 
-              {/* 内容 */}
-              <div className="p-4 overflow-y-auto">{children}</div>
-            </GlassCard>
-          </motion.div>
-        </>
-      )}
-    </AnimatePresence>
+        {/* 内容 */}
+        <div className="px-6 py-4 max-h-[70vh] overflow-y-auto">
+          {children}
+        </div>
+      </div>
+    </div>
   );
 }
