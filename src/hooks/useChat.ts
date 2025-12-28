@@ -3,9 +3,22 @@
 
 import { Chat, useChat as useAIChat } from '@ai-sdk/react';
 import { DefaultChatTransport } from 'ai';
-import { useCallback, useState, useRef } from 'react';
+import { useCallback, useState, useRef, useEffect } from 'react';
 import { useChatStore } from '@/stores/chatStore';
 import { Conversation } from '@/types';
+
+// 创建 Chat 实例
+function createChat(model: string, provider: string, encryptedApiKey: string) {
+  const transport = new DefaultChatTransport({
+    api: '/api/chat',
+    body: {
+      model,
+      provider,
+      encryptedApiKey,
+    },
+  });
+  return new Chat({ transport });
+}
 
 export function useChat() {
   const {
@@ -13,32 +26,40 @@ export function useChat() {
     currentProvider,
     currentModel,
     apiKeys,
+    _hasHydrated,
     addConversation,
     setCurrentConversation,
   } = useChatStore();
 
   const [input, setInput] = useState('');
   const [localError, setLocalError] = useState<string | null>(null);
-
-  const apiKey = apiKeys[currentProvider];
+  
+  const apiKey = apiKeys[currentProvider] || '';
 
   // 使用 useRef 存储 Chat 实例
   const chatRef = useRef<Chat<any> | null>(null);
+  
+  // 追踪上一次的配置
+  const prevConfigRef = useRef({ provider: '', model: '', apiKey: '' });
 
-  // 创建 Chat 实例
+  // 当配置变化或 hydration 完成时重新创建 Chat 实例
+  useEffect(() => {
+    if (!_hasHydrated) return;
+    
+    const configChanged = 
+      prevConfigRef.current.provider !== currentProvider ||
+      prevConfigRef.current.model !== currentModel ||
+      prevConfigRef.current.apiKey !== apiKey;
+
+    if (configChanged || !chatRef.current) {
+      prevConfigRef.current = { provider: currentProvider, model: currentModel, apiKey };
+      chatRef.current = createChat(currentModel, currentProvider, apiKey);
+    }
+  }, [_hasHydrated, currentProvider, currentModel, apiKey]);
+
+  // 确保有一个初始 Chat 实例（用于 useAIChat）
   if (!chatRef.current) {
-    const transport = new DefaultChatTransport({
-      api: '/api/chat',
-      body: {
-        model: currentModel,
-        provider: currentProvider,
-        encryptedApiKey: apiKey || '',
-      },
-    });
-
-    chatRef.current = new Chat({
-      transport,
-    });
+    chatRef.current = createChat(currentModel, currentProvider, apiKey);
   }
 
   const {
@@ -55,6 +76,11 @@ export function useChat() {
 
   const handleSendMessage = useCallback(
     (content: string) => {
+      if (!_hasHydrated) {
+        setLocalError('正在加载配置，请稍候...');
+        return;
+      }
+      
       if (!apiKey) {
         setLocalError(`请先配置 ${currentProvider} 的 API Key`);
         return;
@@ -77,13 +103,13 @@ export function useChat() {
 
       sendMessage({ text: content });
     },
-    [apiKey, currentProvider, currentConversationId, currentModel, addConversation, sendMessage, clearError]
+    [_hasHydrated, apiKey, currentProvider, currentConversationId, currentModel, addConversation, sendMessage, clearError]
   );
 
   const createNewChat = useCallback(() => {
-    chatRef.current = null;
+    chatRef.current = createChat(currentModel, currentProvider, apiKey);
     setCurrentConversation(null);
-  }, [setCurrentConversation]);
+  }, [currentModel, currentProvider, apiKey, setCurrentConversation]);
 
   return {
     messages,
@@ -94,5 +120,6 @@ export function useChat() {
     sendMessage: handleSendMessage,
     createNewChat,
     stop,
+    isReady: _hasHydrated,
   };
 }

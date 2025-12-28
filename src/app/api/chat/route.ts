@@ -6,7 +6,7 @@ import { createGoogleGenerativeAI } from '@ai-sdk/google';
 import { decrypt } from '@/lib/utils/encryption';
 import { AIProvider } from '@/types';
 
-export const runtime = 'edge';
+// export const runtime = 'edge';
 
 function getModel(provider: AIProvider, modelId: string, apiKey: string) {
   switch (provider) {
@@ -17,9 +17,16 @@ function getModel(provider: AIProvider, modelId: string, apiKey: string) {
     case 'google':
       return createGoogleGenerativeAI({ apiKey })(modelId);
     case 'deepseek':
-      return createOpenAI({ apiKey, baseURL: 'https://api.deepseek.com' })(modelId);
+      // DeepSeek 使用 OpenAI 兼容接口，指定 chat completions 端点
+      return createOpenAI({ 
+        apiKey, 
+        baseURL: 'https://api.deepseek.com',
+      }).chat(modelId);
     case 'qwen':
-      return createOpenAI({ apiKey, baseURL: 'https://dashscope.aliyuncs.com/compatible-mode/v1' })(modelId);
+      return createOpenAI({ 
+        apiKey, 
+        baseURL: 'https://dashscope.aliyuncs.com/compatible-mode/v1',
+      }).chat(modelId);
     default:
       throw new Error(`Unknown provider: ${provider}`);
   }
@@ -43,6 +50,7 @@ export async function POST(req: Request) {
     }
 
     const apiKey = decrypt(encryptedApiKey);
+    console.log('Decrypted apiKey length:', apiKey?.length, 'isEmpty:', !apiKey);
     if (!apiKey) {
       return new Response(
         JSON.stringify({ error: 'Invalid API key' }),

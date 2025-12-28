@@ -74,12 +74,12 @@ export function Sidebar() {
       <ScrollArea className="flex-1 px-2">
         <div className="space-y-1">
           {conversations.map((conv, index) => (
-            <button
+            <div
               key={conv.id}
               onClick={() => setCurrentConversation(conv.id)}
               style={{ animationDelay: `${index * 0.03}s` }}
               className={cn(
-                'w-full flex items-center gap-3 px-3 py-2.5 rounded-lg text-left',
+                'w-full flex items-center gap-3 px-3 py-2.5 rounded-lg text-left cursor-pointer',
                 'transition-all duration-200 group animate-fade-in',
                 currentConversationId === conv.id
                   ? 'bg-sidebar-accent text-sidebar-accent-foreground'
@@ -106,7 +106,7 @@ export function Sidebar() {
                   </Button>
                 </>
               )}
-            </button>
+            </div>
           ))}
         </div>
 
