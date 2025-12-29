@@ -1,6 +1,6 @@
 // src/stores/chatStore.ts
 import { create } from 'zustand';
-import { persist } from 'zustand/middleware';
+import { persist, createJSONStorage } from 'zustand/middleware';
 import { Message, Conversation, AIProvider } from '@/types';
 
 interface ChatState {
@@ -12,6 +12,9 @@ interface ChatState {
   currentProvider: AIProvider;
   currentModel: string;
   apiKeys: Record<AIProvider, string>; // 加密后的 keys
+  
+  // hydration 状态
+  _hasHydrated: boolean;
 
   // 操作
   setCurrentConversation: (id: string | null) => void;
@@ -23,6 +26,7 @@ interface ChatState {
   setApiKey: (provider: AIProvider, encryptedKey: string) => void;
   removeApiKey: (provider: AIProvider) => void;
   deleteConversation: (id: string) => void;
+  setHasHydrated: (state: boolean) => void;
 }
 
 export const useChatStore = create<ChatState>()(
@@ -33,6 +37,9 @@ export const useChatStore = create<ChatState>()(
       currentProvider: 'openai',
       currentModel: 'gpt-4o',
       apiKeys: {} as Record<AIProvider, string>,
+      _hasHydrated: false,
+
+      setHasHydrated: (state) => set({ _hasHydrated: state }),
 
       setCurrentConversation: (id) => set({ currentConversationId: id }),
 
@@ -94,6 +101,9 @@ export const useChatStore = create<ChatState>()(
         currentProvider: state.currentProvider,
         currentModel: state.currentModel,
       }),
+      onRehydrateStorage: () => (state) => {
+        state?.setHasHydrated(true);
+      },
     }
   )
 );
