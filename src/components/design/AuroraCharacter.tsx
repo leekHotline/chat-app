@@ -1,7 +1,7 @@
 'use client';
 
 import { useEffect, useState, useCallback, useRef, useImperativeHandle, forwardRef } from 'react';
-import { motion, useSpring, useTransform, MotionValue, animate } from 'framer-motion';
+import { motion, useSpring, useTransform, MotionValue } from 'framer-motion';
 
 // 表情类型
 type Expression = 'neutral' | 'happy' | 'surprised' | 'shy' | 'sleepy' | 'thinking' | 'wink';
@@ -36,7 +36,6 @@ const AuroraCharacter = forwardRef<AuroraCharacterRef, AuroraCharacterProps>(({
 
   // 物理弹簧配置 - 更灵敏
   const springConfig = { mass: 0.5, stiffness: 180, damping: 15 };
-  const slowSpring = { mass: 0.8, stiffness: 100, damping: 20 };
 
   const mouseX = useSpring(0.5, springConfig);
   const mouseY = useSpring(0.5, springConfig);
@@ -67,10 +66,6 @@ const AuroraCharacter = forwardRef<AuroraCharacterRef, AuroraCharacterProps>(({
 
   // 嘴巴微动
   const mouthOffsetX = useTransform(mouseX, [0, 1], [-2, 2]);
-
-  // 背景渐变位置
-  const bgGradientX = useSpring(50, slowSpring);
-  const bgGradientY = useSpring(50, slowSpring);
 
   // 暴露方法给外部
   useImperativeHandle(ref, () => ({
@@ -107,9 +102,7 @@ const AuroraCharacter = forwardRef<AuroraCharacterRef, AuroraCharacterProps>(({
     setMousePos({ x, y });
     mouseX.set(x);
     mouseY.set(y);
-    bgGradientX.set(x * 100);
-    bgGradientY.set(y * 100);
-  }, [mouseX, mouseY, bgGradientX, bgGradientY]);
+  }, [mouseX, mouseY]);
 
   useEffect(() => {
     window.addEventListener('mousemove', handleMouseMove);
@@ -165,11 +158,11 @@ const AuroraCharacter = forwardRef<AuroraCharacterRef, AuroraCharacterProps>(({
   return (
     <div className={`relative ${className}`} style={{ width: size, height: size }}>
       {/* 动态背景渐变 */}
-      <DynamicBackground bgGradientX={bgGradientX} bgGradientY={bgGradientY} mousePos={mousePos} />
+      <DynamicBackground mousePos={mousePos} />
 
       {/* 主角色容器 */}
       <motion.div
-        className="absolute inset-0 cursor-pointer"
+        className="absolute inset-0 cursor-pointer select-none"
         onClick={handleClick}
         style={{
           rotateX,
@@ -218,134 +211,226 @@ AuroraCharacter.displayName = 'AuroraCharacter';
 export default AuroraCharacter;
 
 
-// 动态背景组件 - 四角不同颜色
+// 动态背景组件 - 浏览器视窗4个角落固定色块
 function DynamicBackground({ 
-  bgGradientX, 
-  bgGradientY,
   mousePos
 }: { 
-  bgGradientX: MotionValue<number>; 
-  bgGradientY: MotionValue<number>;
   mousePos: { x: number; y: number };
 }) {
-  // 根据鼠标位置计算四角颜色混合
-  const getCornerColors = () => {
-    const { x, y } = mousePos;
-    
-    // 四角基础颜色
-    const topLeft = { r: 120, g: 230, b: 255 };     // 青色
-    const topRight = { r: 255, g: 180, b: 220 };    // 粉色
-    const bottomLeft = { r: 180, g: 255, b: 200 };  // 薄荷绿
-    const bottomRight = { r: 200, g: 160, b: 255 }; // 紫色
-    
-    // 双线性插值
-    const topColor = {
-      r: topLeft.r * (1 - x) + topRight.r * x,
-      g: topLeft.g * (1 - x) + topRight.g * x,
-      b: topLeft.b * (1 - x) + topRight.b * x,
-    };
-    const bottomColor = {
-      r: bottomLeft.r * (1 - x) + bottomRight.r * x,
-      g: bottomLeft.g * (1 - x) + bottomRight.g * x,
-      b: bottomLeft.b * (1 - x) + bottomRight.b * x,
-    };
-    const finalColor = {
-      r: Math.round(topColor.r * (1 - y) + bottomColor.r * y),
-      g: Math.round(topColor.g * (1 - y) + bottomColor.g * y),
-      b: Math.round(topColor.b * (1 - y) + bottomColor.b * y),
-    };
-    
-    return finalColor;
-  };
-
-  const color = getCornerColors();
-  const colorStr = `rgba(${color.r}, ${color.g}, ${color.b}, 0.35)`;
-  const colorStr2 = `rgba(${255 - color.r * 0.3}, ${255 - color.g * 0.3}, ${255 - color.b * 0.3}, 0.25)`;
+  const { x, y } = mousePos;
+  
+  // 计算每个角落的透明度 - 鼠标越近越亮
+  const topLeftOpacity = 0.2 + 0.4 * (1 - x) * (1 - y);
+  const topRightOpacity = 0.2 + 0.4 * x * (1 - y);
+  const bottomLeftOpacity = 0.2 + 0.4 * (1 - x) * y;
+  const bottomRightOpacity = 0.2 + 0.4 * x * y;
 
   return (
-    <motion.div 
-      className="absolute -inset-24 pointer-events-none"
-      animate={{
-        background: `
-          radial-gradient(ellipse 70% 60% at ${mousePos.x * 100}% ${mousePos.y * 100}%, ${colorStr} 0%, transparent 55%),
-          radial-gradient(ellipse 60% 70% at ${(1 - mousePos.x) * 100}% ${(1 - mousePos.y) * 100}%, ${colorStr2} 0%, transparent 50%),
-          radial-gradient(circle at 50% 50%, rgba(250, 250, 249, 0.4) 0%, transparent 70%)
-        `
-      }}
-      transition={{ duration: 0.3, ease: 'easeOut' }}
-      style={{
-        filter: 'blur(50px)',
-      }}
-    />
+    <div className="fixed inset-0 pointer-events-none overflow-hidden" style={{ zIndex: -1 }}>
+      {/* 左上角 - 青色 (固定在视窗左上) */}
+      <motion.div 
+        className="absolute"
+        style={{ 
+          top: '-20%', 
+          left: '-20%', 
+          width: '70%', 
+          height: '70%',
+          filter: 'blur(80px)', 
+          mixBlendMode: 'screen' 
+        }}
+        animate={{
+          background: `radial-gradient(ellipse 100% 100% at 30% 30%, 
+            rgba(0, 220, 255, ${topLeftOpacity}) 0%, 
+            rgba(60, 200, 245, ${topLeftOpacity * 0.4}) 40%, 
+            transparent 70%)`
+        }}
+        transition={{ duration: 0.3, ease: 'easeOut' }}
+      />
+      
+      {/* 右上角 - 柔蓝 (固定在视窗右上) */}
+      <motion.div 
+        className="absolute"
+        style={{ 
+          top: '-20%', 
+          right: '-20%', 
+          width: '70%', 
+          height: '70%',
+          filter: 'blur(80px)', 
+          mixBlendMode: 'screen' 
+        }}
+        animate={{
+          background: `radial-gradient(ellipse 100% 100% at 70% 30%, 
+            rgba(100, 180, 255, ${topRightOpacity}) 0%, 
+            rgba(130, 190, 250, ${topRightOpacity * 0.4}) 40%, 
+            transparent 70%)`
+        }}
+        transition={{ duration: 0.3, ease: 'easeOut' }}
+      />
+      
+      {/* 左下角 - 紫罗兰 (固定在视窗左下) */}
+      <motion.div 
+        className="absolute"
+        style={{ 
+          bottom: '-20%', 
+          left: '-20%', 
+          width: '70%', 
+          height: '70%',
+          filter: 'blur(80px)', 
+          mixBlendMode: 'screen' 
+        }}
+        animate={{
+          background: `radial-gradient(ellipse 100% 100% at 30% 70%, 
+            rgba(170, 130, 255, ${bottomLeftOpacity}) 0%, 
+            rgba(150, 120, 240, ${bottomLeftOpacity * 0.4}) 40%, 
+            transparent 70%)`
+        }}
+        transition={{ duration: 0.3, ease: 'easeOut' }}
+      />
+      
+      {/* 右下角 - 淡紫蓝 (固定在视窗右下) */}
+      <motion.div 
+        className="absolute"
+        style={{ 
+          bottom: '-20%', 
+          right: '-20%', 
+          width: '70%', 
+          height: '70%',
+          filter: 'blur(80px)', 
+          mixBlendMode: 'screen' 
+        }}
+        animate={{
+          background: `radial-gradient(ellipse 100% 100% at 70% 70%, 
+            rgba(140, 160, 255, ${bottomRightOpacity}) 0%, 
+            rgba(160, 170, 250, ${bottomRightOpacity * 0.4}) 40%, 
+            transparent 70%)`
+        }}
+        transition={{ duration: 0.3, ease: 'easeOut' }}
+      />
+    </div>
   );
 }
 
-// 极光球体
+// 极光球体 - 3个120度扇形，颜色随鼠标位置变化，边界柔和无空白
 function AuroraOrb({ mousePos }: { mousePos: { x: number; y: number } }) {
   const { x, y } = mousePos;
   
-  // 根据位置调整球体颜色
-  const hueShift = x * 30 - 15; // -15 到 15 度色相偏移
-  const saturation = 70 + y * 20; // 70-90% 饱和度
+  // 根据鼠标在视窗的位置混合四角颜色
+  // 左上青色, 右上柔蓝, 左下紫罗兰, 右下淡紫蓝
+  const cyanWeight = (1 - x) * (1 - y);      // 左上
+  const blueWeight = x * (1 - y);            // 右上
+  const violetWeight = (1 - x) * y;          // 左下
+  const lavenderWeight = x * y;              // 右下
   
+  // 混合得到当前主色调
+  const r = Math.round(0 * cyanWeight + 100 * blueWeight + 170 * violetWeight + 140 * lavenderWeight);
+  const g = Math.round(220 * cyanWeight + 180 * blueWeight + 130 * violetWeight + 160 * lavenderWeight);
+  const b = Math.round(255 * cyanWeight + 255 * blueWeight + 255 * violetWeight + 255 * lavenderWeight);
+  
+  // 次要色调 (偏移)
+  const r2 = Math.round(60 * cyanWeight + 130 * blueWeight + 150 * violetWeight + 160 * lavenderWeight);
+  const g2 = Math.round(200 * cyanWeight + 190 * blueWeight + 120 * violetWeight + 170 * lavenderWeight);
+  const b2 = Math.round(245 * cyanWeight + 250 * blueWeight + 240 * violetWeight + 250 * lavenderWeight);
+
+  // 第三色调 (偏移)
+  const r3 = Math.round(80 * cyanWeight + 150 * blueWeight + 140 * violetWeight + 180 * lavenderWeight);
+  const g3 = Math.round(210 * cyanWeight + 200 * blueWeight + 140 * violetWeight + 180 * lavenderWeight);
+  const b3 = Math.round(250 * cyanWeight + 255 * blueWeight + 250 * violetWeight + 255 * lavenderWeight);
+
   return (
     <>
-      {/* 主球体 */}
+      {/* 扇形1 - 上方，扩展到150度覆盖间隙 */}
+      <motion.div 
+        className="absolute -inset-6 rounded-full"
+        animate={{
+          background: `conic-gradient(
+            from 15deg at 50% 50%,
+            rgba(${r}, ${g}, ${b}, 0.75) 0deg,
+            rgba(${r}, ${g}, ${b}, 0.6) 45deg,
+            rgba(${r}, ${g}, ${b}, 0.35) 90deg,
+            rgba(${r}, ${g}, ${b}, 0.15) 120deg,
+            rgba(${r}, ${g}, ${b}, 0.05) 150deg,
+            transparent 180deg,
+            transparent 360deg
+          )`
+        }}
+        transition={{ duration: 0.25, ease: 'easeOut' }}
+        style={{ filter: 'blur(30px)', mixBlendMode: 'screen' }}
+      />
+
+      {/* 扇形2 - 左下，扩展覆盖 */}
+      <motion.div 
+        className="absolute -inset-6 rounded-full"
+        animate={{
+          background: `conic-gradient(
+            from 135deg at 50% 50%,
+            rgba(${r2}, ${g2}, ${b2}, 0.7) 0deg,
+            rgba(${r2}, ${g2}, ${b2}, 0.55) 45deg,
+            rgba(${r2}, ${g2}, ${b2}, 0.3) 90deg,
+            rgba(${r2}, ${g2}, ${b2}, 0.12) 120deg,
+            rgba(${r2}, ${g2}, ${b2}, 0.04) 150deg,
+            transparent 180deg,
+            transparent 360deg
+          )`
+        }}
+        transition={{ duration: 0.25, ease: 'easeOut' }}
+        style={{ filter: 'blur(30px)', mixBlendMode: 'screen' }}
+      />
+
+      {/* 扇形3 - 右下，扩展覆盖 */}
+      <motion.div 
+        className="absolute -inset-6 rounded-full"
+        animate={{
+          background: `conic-gradient(
+            from 255deg at 50% 50%,
+            rgba(${r3}, ${g3}, ${b3}, 0.7) 0deg,
+            rgba(${r3}, ${g3}, ${b3}, 0.55) 45deg,
+            rgba(${r3}, ${g3}, ${b3}, 0.3) 90deg,
+            rgba(${r3}, ${g3}, ${b3}, 0.12) 120deg,
+            rgba(${r3}, ${g3}, ${b3}, 0.04) 150deg,
+            transparent 180deg,
+            transparent 360deg
+          )`
+        }}
+        transition={{ duration: 0.25, ease: 'easeOut' }}
+        style={{ filter: 'blur(30px)', mixBlendMode: 'screen' }}
+      />
+
+      {/* 底层填充 - 确保无空白 */}
+      <motion.div 
+        className="absolute -inset-4 rounded-full"
+        animate={{
+          background: `radial-gradient(circle at 50% 50%, 
+            rgba(${(r + r2 + r3) / 3}, ${(g + g2 + g3) / 3}, ${(b + b2 + b3) / 3}, 0.4) 0%, 
+            rgba(${(r + r2 + r3) / 3}, ${(g + g2 + g3) / 3}, ${(b + b2 + b3) / 3}, 0.2) 50%, 
+            transparent 80%)`
+        }}
+        transition={{ duration: 0.2, ease: 'easeOut' }}
+        style={{ filter: 'blur(25px)', mixBlendMode: 'screen' }}
+      />
+
+      {/* 中心发光层 */}
+      <motion.div 
+        className="absolute -inset-2 rounded-full"
+        animate={{
+          background: `radial-gradient(ellipse 85% 85% at ${45 + x * 10}% ${45 + y * 10}%, 
+            rgba(${r}, ${g}, ${b}, 0.55) 0%, 
+            rgba(${r2}, ${g2}, ${b2}, 0.3) 40%, 
+            transparent 70%)`
+        }}
+        transition={{ duration: 0.2, ease: 'easeOut' }}
+        style={{ filter: 'blur(15px)', mixBlendMode: 'screen' }}
+      />
+
+      {/* 内层高亮 - 跟随鼠标 */}
       <motion.div 
         className="absolute inset-0 rounded-full"
         animate={{
-          background: `
-            radial-gradient(ellipse 80% 70% at ${35 + x * 10}% ${40 + y * 10}%, 
-              hsla(${185 + hueShift}, ${saturation}%, 75%, 0.85) 0%, transparent 55%),
-            radial-gradient(ellipse 60% 80% at ${70 - x * 10}% ${55 + y * 10}%, 
-              hsla(${260 + hueShift}, ${saturation - 10}%, 75%, 0.7) 0%, transparent 50%),
-            radial-gradient(ellipse 90% 90% at 50% 60%, 
-              hsla(${210 + hueShift}, ${saturation}%, 80%, 0.75) 0%, transparent 60%),
-            radial-gradient(circle at 50% 50%, 
-              hsla(${200 + hueShift}, ${saturation}%, 82%, 0.6) 0%, 
-              hsla(${270 + hueShift}, ${saturation - 15}%, 78%, 0.4) 50%, transparent 75%)
-          `
+          background: `radial-gradient(ellipse 65% 65% at ${40 + x * 20}% ${40 + y * 20}%, 
+            rgba(230, 245, 255, 0.5) 0%, 
+            transparent 55%)`
         }}
-        transition={{ duration: 0.4, ease: 'easeOut' }}
-        style={{ filter: 'blur(8px)' }}
-      />
-
-      {/* 内层发光 */}
-      <motion.div 
-        className="absolute inset-4 rounded-full"
-        animate={{
-          background: `
-            radial-gradient(ellipse 70% 60% at ${40 + x * 8}% ${35 + y * 8}%, 
-              hsla(${190 + hueShift}, 80%, 90%, 0.6) 0%, transparent 50%),
-            radial-gradient(ellipse 50% 70% at ${65 - x * 8}% ${60 + y * 5}%, 
-              hsla(${265 + hueShift}, 70%, 85%, 0.5) 0%, transparent 45%)
-          `
-        }}
-        transition={{ duration: 0.3, ease: 'easeOut' }}
-        style={{ filter: 'blur(4px)' }}
-      />
-
-      {/* 高光点 */}
-      <motion.div 
-        className="absolute rounded-full bg-white/40"
-        animate={{
-          top: `${62 + y * 8}%`,
-          left: `${58 + x * 10}%`,
-        }}
-        transition={{ duration: 0.2 }}
-        style={{
-          width: '10%',
-          height: '10%',
-          filter: 'blur(3px)',
-        }}
-      />
-
-      {/* 边缘柔化 */}
-      <div 
-        className="absolute inset-0 rounded-full pointer-events-none"
-        style={{
-          background: 'radial-gradient(circle, transparent 48%, #FAFAF9 76%)',
-        }}
+        transition={{ duration: 0.15, ease: 'easeOut' }}
+        style={{ filter: 'blur(8px)', mixBlendMode: 'screen' }}
       />
     </>
   );
@@ -364,7 +449,7 @@ function ShySymbols() {
         exit={{ opacity: 0, scale: 0 }}
         transition={{ type: 'spring', stiffness: 300, damping: 15 }}
       >
-        ❤
+        
       </motion.div>
       
       {/* 右侧害羞符号 */}
@@ -376,7 +461,7 @@ function ShySymbols() {
         exit={{ opacity: 0, scale: 0 }}
         transition={{ type: 'spring', stiffness: 300, damping: 15, delay: 0.1 }}
       >
-        ♡
+        
       </motion.div>
 
       {/* 顶部小星星 */}
@@ -424,7 +509,7 @@ function Face({
   
   return (
     <>
-      {/* 左眉毛 - 更宽松位置 */}
+      {/* 左眉毛 - 独立弧线 */}
       <motion.path
         d={getEyebrowPath('left', expression)}
         fill="none"
@@ -437,8 +522,8 @@ function Face({
           transformOrigin: '34px 36px'
         }}
       />
-      
-      {/* 右眉毛 */}
+
+      {/* 右眉毛 - 独立弧线 */}
       <motion.path
         d={getEyebrowPath('right', expression)}
         fill="none"
@@ -452,7 +537,7 @@ function Face({
         }}
       />
 
-      {/* 左眼 - 位置更宽松 */}
+      {/* 左眼 */}
       <motion.g style={{ x: eyeOffsetX, y: eyeOffsetY }}>
         <Eye 
           side="left" 
@@ -476,34 +561,29 @@ function Face({
         />
       </motion.g>
 
-      {/* 鼻子 - 位置调整 */}
+      {/* 鼻子 - 左偏15度的 J 形，拉长 */}
       <path
-        d="M 50 52 L 50 60 L 54 60"
+        d="M 46 48 L 43 62 Q 42 67 48 67"
         fill="none"
         stroke={baseStroke}
         strokeWidth="2"
         strokeLinecap="round"
         strokeLinejoin="round"
-        opacity={0.8}
+        opacity={0.85}
       />
-
-      {/* 嘴巴 */}
-      <motion.g style={{ x: mouthOffsetX }}>
-        <Mouth expression={expression} stroke={baseStroke} />
-      </motion.g>
 
       {/* 腮红 */}
       {expression === 'shy' && (
         <>
           <motion.circle 
-            cx="24" cy="56" r="6" 
+            cx="26" cy="54" r="6" 
             fill="rgba(255, 182, 193, 0.5)"
             initial={{ scale: 0, opacity: 0 }}
             animate={{ scale: 1, opacity: 1 }}
             transition={{ type: 'spring', stiffness: 200 }}
           />
           <motion.circle 
-            cx="76" cy="56" r="6" 
+            cx="74" cy="54" r="6" 
             fill="rgba(255, 182, 193, 0.5)"
             initial={{ scale: 0, opacity: 0 }}
             animate={{ scale: 1, opacity: 1 }}
@@ -625,9 +705,10 @@ function Mouth({ expression, stroke }: { expression: Expression; stroke: string 
   
   switch (expression) {
     case 'happy':
+      // ω 形状 - 开心时更大
       return (
         <motion.path
-          d="M 40 70 Q 50 80 60 70"
+          d="M 38 68 Q 42 76 50 68 Q 58 76 62 68"
           fill="none"
           stroke={stroke}
           strokeWidth="2.5"
@@ -638,12 +719,13 @@ function Mouth({ expression, stroke }: { expression: Expression; stroke: string 
         />
       );
     case 'surprised':
+      // 惊讶的 O 形
       return (
         <motion.ellipse
           cx="50"
           cy={cy + 2}
           rx="5"
-          ry="7"
+          ry="6"
           fill="none"
           stroke={stroke}
           strokeWidth="2"
@@ -653,9 +735,10 @@ function Mouth({ expression, stroke }: { expression: Expression; stroke: string 
         />
       );
     case 'shy':
+      // 害羞的小 ω
       return (
         <path
-          d="M 42 71 Q 46 74 50 71 Q 54 68 58 71"
+          d="M 42 69 Q 45 73 50 69 Q 55 73 58 69"
           fill="none"
           stroke={stroke}
           strokeWidth="2"
@@ -663,9 +746,10 @@ function Mouth({ expression, stroke }: { expression: Expression; stroke: string 
         />
       );
     case 'thinking':
+      // 思考时歪嘴
       return (
         <path
-          d="M 44 71 Q 52 70 58 74"
+          d="M 46 70 Q 50 73 54 70 Q 58 73 60 71"
           fill="none"
           stroke={stroke}
           strokeWidth="2"
@@ -673,9 +757,10 @@ function Mouth({ expression, stroke }: { expression: Expression; stroke: string 
         />
       );
     case 'sleepy':
+      // 困倦的小嘴
       return (
         <path
-          d="M 46 71 Q 50 73 54 71"
+          d="M 46 70 Q 48 72 50 70 Q 52 72 54 70"
           fill="none"
           stroke={stroke}
           strokeWidth="2"
@@ -683,9 +768,10 @@ function Mouth({ expression, stroke }: { expression: Expression; stroke: string 
         />
       );
     case 'wink':
+      // 眨眼时的 ω
       return (
         <path
-          d="M 42 70 Q 50 77 58 70"
+          d="M 40 68 Q 44 75 50 68 Q 56 75 60 68"
           fill="none"
           stroke={stroke}
           strokeWidth="2.5"
@@ -693,9 +779,10 @@ function Mouth({ expression, stroke }: { expression: Expression; stroke: string 
         />
       );
     default:
+      // 默认 ω 欧米伽嘴巴
       return (
         <path
-          d="M 42 70 Q 50 76 58 70"
+          d="M 40 68 Q 44 74 50 68 Q 56 74 60 68"
           fill="none"
           stroke={stroke}
           strokeWidth="2.2"
