@@ -18,12 +18,23 @@ pnpm install
 pnpm dev
 ```
 
+Open http://localhost:3000 with your browser to see the result.
 
-Open [http://localhost:3000](http://localhost:3000) with your browser to see the result.
-**
-Agreement** is more important than **Configuration**
+**Agreement** is more important than **Configuration**
 You can start editing the page by modifying `app/page.tsx`. The page auto-updates as you edit the file.
 You can start editing the api by modifying `app/api/[moulde]/route.ts`. The simple backend router as you edit the file.Name the function as 'POST'
+
+# TODO LIST
+```javascript
+// 工作区页面 聊天按钮组件 中英翻译组件 
+// 谷歌登录接入
+// 聊天记录发送
+// 本地与外部工具调用接口
+// mcp服务调用接口
+
+```
+
+
 
 ## Acknowledgement致谢
 Thank you to the first batch of users who used the product. You guys are the best. Thank you for your feedback, suggestions and bugs
